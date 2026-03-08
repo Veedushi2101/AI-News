@@ -1,0 +1,19 @@
+version: "3.9"
+
+services:
+  semantic-search:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - SIMILARITY_THRESHOLD=0.88
+      - N_CLUSTERS=15
+    volumes:
+      # Mount data directory so you can pre-build embeddings outside container
+      - ./data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

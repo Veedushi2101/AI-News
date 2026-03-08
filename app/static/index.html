@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MedSearch — Medical Q&A Semantic Search</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:        #f5f2ee;
+      --surface:   #ffffff;
+      --surface2:  #f0ece6;
+      --ink:       #1a1612;
+      --ink2:      #5c5449;
+      --ink3:      #9b9189;
+      --accent:    #c0392b;
+      --accent2:   #e74c3c;
+      --teal:      #1a6b6b;
+      --teal-lt:   #e8f4f4;
+      --amber:     #d4860a;
+      --amber-lt:  #fef6e6;
+      --green:     #2d6a4f;
+      --green-lt:  #e8f5ee;
+      --border:    #e2ddd8;
+      --shadow:    0 2px 16px rgba(26,22,18,0.08);
+      --shadow-lg: 0 8px 40px rgba(26,22,18,0.13);
+      --r:         14px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Decorative background ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 40% at 80% 10%, rgba(192,57,43,0.06) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 50% at 10% 90%, rgba(26,107,107,0.07) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Header ── */
+    header {
+      position: relative;
+      z-index: 10;
+      padding: 28px 40px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      background: rgba(245,242,238,0.85);
+      backdrop-filter: blur(8px);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .logo-icon {
+      width: 44px;
+      height: 44px;
+      background: var(--accent);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .logo-text {
+      font-family: 'Playfair Display', serif;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .logo-text span { color: var(--accent); }
+
+    .logo-sub {
+      font-size: 11px;
+      color: var(--ink3);
+      font-weight: 400;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      margin-top: 1px;
+    }
+
+    .header-pills {
+      display: flex;
+      gap: 8px;
+    }
+
+    .pill {
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--ink2);
+      transition: all 0.18s;
+      font-family: 'DM Mono', monospace;
+    }
+
+    .pill:hover { background: var(--ink); color: #fff; border-color: var(--ink); }
+    .pill.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    /* ── Main layout ── */
+    main {
+      position: relative;
+      z-index: 1;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      text-align: center;
+      margin-bottom: 40px;
+      animation: fadeUp 0.6s ease both;
+    }
+
+    .hero-eyebrow {
+      display: inline-block;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--accent);
+      background: rgba(192,57,43,0.08);
+      padding: 6px 14px;
+      border-radius: 999px;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(32px, 5vw, 52px);
+      font-weight: 700;
+      line-height: 1.15;
+      letter-spacing: -1px;
+      margin-bottom: 14px;
+    }
+
+    .hero h1 em {
+      font-style: italic;
+      color: var(--accent);
+    }
+
+    .hero p {
+      color: var(--ink2);
+      font-size: 16px;
+      font-weight: 300;
+      max-width: 520px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    /* ── Search box ── */
+    .search-wrap {
+      position: relative;
+      margin-bottom: 16px;
+      animation: fadeUp 0.6s 0.1s ease both;
+    }
+
+    .search-box {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: 18px;
+      padding: 6px 6px 6px 22px;
+      box-shadow: var(--shadow);
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .search-box:focus-within {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px rgba(192,57,43,0.1), var(--shadow);
+    }
+
+    .search-icon {
+      font-size: 18px;
+      flex-shrink: 0;
+      color: var(--ink3);
+    }
+
+    .search-box input {
+      flex: 1;
+      border: none;
+      outline: none;
+      background: transparent;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 16px;
+      color: var(--ink);
+      font-weight: 400;
+    }
+
+    .search-box input::placeholder { color: var(--ink3); }
+
+    .search-btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 13px;
+      padding: 13px 28px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.18s, transform 0.12s;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .search-btn:hover { background: var(--accent2); transform: scale(1.02); }
+    .search-btn:active { transform: scale(0.98); }
+    .search-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    /* ── Suggestions ── */
+    .suggestions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      animation: fadeUp 0.6s 0.2s ease both;
+    }
+
+    .suggestion-chip {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 7px 15px;
+      font-size: 12.5px;
+      color: var(--ink2);
+      cursor: pointer;
+      transition: all 0.16s;
+      font-weight: 400;
+    }
+
+    .suggestion-chip:hover {
+      background: var(--teal-lt);
+      border-color: var(--teal);
+      color: var(--teal);
+    }
+
+    /* ── Divider ── */
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 36px 0;
+    }
+
+    /* ── Status bar ── */
+    .status-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .status-label {
+      font-size: 12px;
+      color: var(--ink3);
+      font-family: 'DM Mono', monospace;
+      letter-spacing: 0.5px;
+    }
+
+    .cache-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 500;
+      font-family: 'DM Mono', monospace;
+    }
+
+    .cache-badge.hit { background: var(--green-lt); color: var(--green); }
+    .cache-badge.miss { background: var(--amber-lt); color: var(--amber); }
+
+    .cache-badge .dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    /* ── Result card ── */
+    .result-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 28px 32px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow);
+      animation: fadeUp 0.4s ease both;
+      transition: box-shadow 0.2s;
+    }
+
+    .result-card:hover { box-shadow: var(--shadow-lg); }
+
+    .result-card.top-result {
+      border-color: var(--teal);
+      border-width: 2px;
+    }
+
+    .result-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .result-rank {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: var(--surface2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--ink3);
+      flex-shrink: 0;
+    }
+
+    .result-card.top-result .result-rank {
+      background: var(--teal);
+      color: #fff;
+    }
+
+    .result-meta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .tag {
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.3px;
+      text-transform: capitalize;
+    }
+
+    .tag.category { background: var(--teal-lt); color: var(--teal); }
+    .tag.similarity { background: var(--surface2); color: var(--ink2); font-family: 'DM Mono', monospace; }
+
+    .result-q {
+      font-family: 'Playfair Display', serif;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+
+    .result-a {
+      font-size: 14px;
+      color: var(--ink2);
+      line-height: 1.65;
+      font-weight: 300;
+    }
+
+    /* ── Cluster info ── */
+    .cluster-info {
+      background: var(--surface2);
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin-top: 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 13px;
+      color: var(--ink2);
+    }
+
+    .cluster-icon { font-size: 18px; }
+    .cluster-label { font-weight: 500; color: var(--ink); }
+
+    /* ── Match info (cache hit) ── */
+    .match-info {
+      background: var(--green-lt);
+      border: 1px solid rgba(45,106,79,0.2);
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin-bottom: 20px;
+      font-size: 13px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .match-info-icon { font-size: 18px; flex-shrink: 0; }
+
+    .match-info-body { line-height: 1.5; color: var(--green); }
+    .match-info-body strong { font-weight: 600; }
+    .match-info-score {
+      margin-left: auto;
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--green);
+      white-space: nowrap;
+    }
+
+    /* ── Stats panel ── */
+    .stats-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 24px 28px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow);
+      animation: fadeUp 0.4s ease both;
+    }
+
+    .stats-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 14px;
+    }
+
+    .stat-item {
+      text-align: center;
+      padding: 16px 12px;
+      background: var(--surface2);
+      border-radius: 10px;
+    }
+
+    .stat-value {
+      font-family: 'Playfair Display', serif;
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--accent);
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: var(--ink3);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      font-weight: 500;
+    }
+
+    .hit-rate-bar {
+      margin-top: 16px;
+      background: var(--surface2);
+      border-radius: 999px;
+      height: 8px;
+      overflow: hidden;
+    }
+
+    .hit-rate-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--teal), var(--green));
+      border-radius: 999px;
+      transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .hit-rate-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--ink3);
+      margin-top: 6px;
+      font-family: 'DM Mono', monospace;
+    }
+
+    /* ── Flush button ── */
+    .flush-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      color: var(--ink3);
+      cursor: pointer;
+      transition: all 0.18s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .flush-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── Loading spinner ── */
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: inline-block;
+    }
+
+    /* ── Empty state ── */
+    .empty-state {
+      text-align: center;
+      padding: 60px 24px;
+      color: var(--ink3);
+      animation: fadeUp 0.5s ease both;
+    }
+
+    .empty-state-icon { font-size: 48px; margin-bottom: 16px; }
+    .empty-state h3 {
+      font-family: 'Playfair Display', serif;
+      font-size: 20px;
+      color: var(--ink2);
+      margin-bottom: 8px;
+    }
+    .empty-state p { font-size: 14px; font-weight: 300; }
+
+    /* ── Error state ── */
+    .error-banner {
+      background: rgba(192,57,43,0.08);
+      border: 1px solid rgba(192,57,43,0.2);
+      border-radius: 10px;
+      padding: 14px 18px;
+      color: var(--accent);
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+      animation: fadeUp 0.3s ease both;
+    }
+
+    /* ── Category filter pills ── */
+    .filter-wrap {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .filter-label {
+      font-size: 12px;
+      color: var(--ink3);
+      font-family: 'DM Mono', monospace;
+      margin-right: 4px;
+    }
+
+    /* ── Footer ── */
+    footer {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 24px;
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--ink3);
+      font-family: 'DM Mono', monospace;
+    }
+
+    /* ── Animations ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .loading-pulse { animation: pulse 1.2s ease infinite; }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      header { padding: 18px 20px; }
+      main { padding: 24px 16px 60px; }
+      .search-box { padding: 6px 6px 6px 14px; }
+      .result-card { padding: 20px 18px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">🩺</div>
+    <div>
+      <div class="logo-text">Med<span>Search</span></div>
+      <div class="logo-sub">Medical Q&amp;A Semantic Search</div>
+    </div>
+  </div>
+  <div class="header-pills">
+    <button class="pill active" id="tab-search" onclick="switchTab('search')">Search</button>
+    <button class="pill" id="tab-stats" onclick="switchTab('stats')">Cache Stats</button>
+  </div>
+</header>
+
+<!-- Main -->
+<main>
+
+  <!-- SEARCH TAB -->
+  <div id="view-search">
+
+    <!-- Hero -->
+    <div class="hero">
+      <div class="hero-eyebrow">Semantic Intelligence</div>
+      <h1>Ask any <em>medical</em><br>question, naturally.</h1>
+      <p>Powered by vector embeddings and fuzzy clustering — understands what you mean, not just what you type.</p>
+    </div>
+
+    <!-- Search box -->
+    <div class="search-wrap">
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input
+          type="text"
+          id="query-input"
+          placeholder="e.g. What are early signs of diabetes?"
+          autocomplete="off"
+        />
+        <button class="search-btn" id="search-btn" onclick="doSearch()">
+          <span id="btn-label">Search</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Suggestion chips -->
+    <div class="suggestions" id="suggestions">
+      <span class="suggestion-chip" onclick="fillQuery(this)">Symptoms of a heart attack</span>
+      <span class="suggestion-chip" onclick="fillQuery(this)">How is depression treated?</span>
+      <span class="suggestion-chip" onclick="fillQuery(this)">Foods good for heart health</span>
+      <span class="suggestion-chip" onclick="fillQuery(this)">How to prevent diabetes</span>
+      <span class="suggestion-chip" onclick="fillQuery(this)">Side effects of ibuprofen</span>
+      <span class="suggestion-chip" onclick="fillQuery(this)">What is cognitive behavioral therapy?</span>
+      <span class="suggestion-chip" onclick="fillQuery(this)">Signs of kidney disease</span>
+      <span class="suggestion-chip" onclick="fillQuery(this)">How do vaccines work?</span>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Results area -->
+    <div id="results-area">
+      <div class="empty-state">
+        <div class="empty-state-icon">🏥</div>
+        <h3>Ready to help</h3>
+        <p>Type a health question above or pick a suggestion to get started.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- STATS TAB -->
+  <div id="view-stats" style="display:none">
+    <div class="hero" style="margin-bottom:28px">
+      <div class="hero-eyebrow">Cache Analytics</div>
+      <h1>Semantic Cache <em>Stats</em></h1>
+      <p>Track how the cluster-bucketed cache performs in real time.</p>
+    </div>
+
+    <div id="stats-area">
+      <div class="empty-state">
+        <div class="empty-state-icon">📊</div>
+        <h3>No stats yet</h3>
+        <p>Run some searches first, then come back here.</p>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  MedSearch v1.0 · Medical Q&amp;A Semantic Search · Built with FastAPI + ChromaDB + all-MiniLM-L6-v2
+</footer>
+
+<script>
+  const API = 'http://localhost:8000';
+  let activeTab = 'search';
+
+  // ── Tab switching ─────────────────────────────────────────────────────────
+  function switchTab(tab) {
+    activeTab = tab;
+    document.getElementById('view-search').style.display = tab === 'search' ? 'block' : 'none';
+    document.getElementById('view-stats').style.display  = tab === 'stats'  ? 'block' : 'none';
+    document.getElementById('tab-search').classList.toggle('active', tab === 'search');
+    document.getElementById('tab-stats').classList.toggle('active',  tab === 'stats');
+    if (tab === 'stats') loadStats();
+  }
+
+  // ── Fill query from suggestion chip ──────────────────────────────────────
+  function fillQuery(el) {
+    document.getElementById('query-input').value = el.textContent.trim();
+    document.getElementById('query-input').focus();
+  }
+
+  // ── Enter key ─────────────────────────────────────────────────────────────
+  document.getElementById('query-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doSearch();
+  });
+
+  // ── Category colours ──────────────────────────────────────────────────────
+  const CAT_EMOJI = {
+    symptoms:          '🤒',
+    treatment:         '💊',
+    prevention:        '🛡️',
+    medications:       '💉',
+    mental_health:     '🧠',
+    nutrition:         '🥗',
+    chronic_disease:   '📋',
+    emergency:         '🚨',
+    diagnosis:         '🔬',
+    genetics:          '🧬',
+    infectious_disease:'🦠',
+    reproductive_health:'🌸',
+    pediatric_health:  '👶',
+    aging_health:      '🌿',
+  };
+
+  function catEmoji(cat) { return CAT_EMOJI[cat] || '🏥'; }
+
+  function parseResults(text) {
+    const lines = text.split('\n').filter(l => l.trim());
+    const results = [];
+    for (const line of lines) {
+      const m = line.match(/^\[(\d+)\] similarity=([\d.]+) \| category=(\S+) \| (.+)/);
+      if (m) {
+        results.push({
+          rank: parseInt(m[1]),
+          similarity: parseFloat(m[2]),
+          category: m[3],
+          snippet: m[4],
+        });
+      }
+    }
+    return results;
+  }
+
+  function extractQA(snippet) {
+    const qm = snippet.match(/Q:\s*(.+?)\s*A:\s*(.+)/);
+    if (qm) return { q: qm[1].replace(/…$/, ''), a: qm[2].replace(/…$/, '') };
+    return { q: snippet.replace(/…$/, ''), a: '' };
+  }
+
+  // ── Main search ───────────────────────────────────────────────────────────
+  async function doSearch() {
+    const query = document.getElementById('query-input').value.trim();
+    if (!query) return;
+
+    const btn   = document.getElementById('search-btn');
+    const label = document.getElementById('btn-label');
+    const area  = document.getElementById('results-area');
+
+    btn.disabled = true;
+    label.innerHTML = '<span class="spinner"></span>';
+    area.innerHTML  = '<div class="loading-pulse" style="color:var(--ink3);font-size:14px;text-align:center;padding:40px">Searching medical knowledge base…</div>';
+
+    try {
+      const res  = await fetch(`${API}/query`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, top_k: 5 }),
+      });
+
+      if (!res.ok) throw new Error(`API error ${res.status}`);
+      const data = await res.json();
+      renderResults(query, data);
+    } catch (err) {
+      area.innerHTML = `
+        <div class="error-banner">
+          ⚠️ <span>Could not connect to the API. Make sure the server is running on <code>localhost:8000</code>.<br>Run: <code>python -m uvicorn app.main:app --port 8000</code></span>
+        </div>
+        <div class="empty-state">
+          <div class="empty-state-icon">🔌</div>
+          <h3>Server not reachable</h3>
+          <p>${err.message}</p>
+        </div>`;
+    } finally {
+      btn.disabled = false;
+      label.textContent = 'Search';
+    }
+  }
+
+  function renderResults(query, data) {
+    const area = document.getElementById('results-area');
+    const results = parseResults(data.result);
+    const isHit = data.cache_hit;
+
+    let html = '';
+
+    // Status bar
+    html += `<div class="status-bar">
+      <span class="status-label">Results for "${escHtml(query)}"</span>
+      <span class="cache-badge ${isHit ? 'hit' : 'miss'}">
+        <span class="dot"></span>
+        ${isHit ? 'Cache HIT' : 'Cache MISS'}
+      </span>
+    </div>`;
+
+    // Cache hit banner
+    if (isHit && data.matched_query) {
+      html += `<div class="match-info">
+        <span class="match-info-icon">⚡</span>
+        <div class="match-info-body">
+          <strong>Served from semantic cache.</strong><br>
+          Matched previous query: <em>"${escHtml(data.matched_query)}"</em>
+        </div>
+        <span class="match-info-score">${(data.similarity_score * 100).toFixed(1)}% match</span>
+      </div>`;
+    }
+
+    // Result cards
+    results.forEach((r, i) => {
+      const { q, a } = extractQA(r.snippet);
+      const isTop = i === 0;
+      html += `<div class="result-card ${isTop ? 'top-result' : ''}" style="animation-delay:${i * 0.07}s">
+        <div class="result-header">
+          <div class="result-rank">${r.rank}</div>
+          <div class="result-meta">
+            <span class="tag category">${catEmoji(r.category)} ${r.category.replace(/_/g,' ')}</span>
+            <span class="tag similarity">${(r.similarity * 100).toFixed(1)}% similar</span>
+          </div>
+        </div>
+        ${q ? `<div class="result-q">${escHtml(q)}</div>` : ''}
+        ${a ? `<div class="result-a">${escHtml(a)}</div>` : ''}
+      </div>`;
+    });
+
+    // Cluster info
+    html += `<div class="cluster-info">
+      <span class="cluster-icon">🗂️</span>
+      <span>Query assigned to <span class="cluster-label">Cluster ${data.dominant_cluster}</span> — used for fast cache bucket lookup</span>
+    </div>`;
+
+    area.innerHTML = html;
+  }
+
+  // ── Load Stats ────────────────────────────────────────────────────────────
+  async function loadStats() {
+    const area = document.getElementById('stats-area');
+    area.innerHTML = '<div class="loading-pulse" style="color:var(--ink3);font-size:14px;text-align:center;padding:40px">Loading cache statistics…</div>';
+
+    try {
+      const res  = await fetch(`${API}/cache/stats`);
+      if (!res.ok) throw new Error(`API error ${res.status}`);
+      const s = await res.json();
+      renderStats(s);
+    } catch (err) {
+      area.innerHTML = `
+        <div class="error-banner">⚠️ Could not reach API server. Is it running on localhost:8000?</div>`;
+    }
+  }
+
+  function renderStats(s) {
+    const area = document.getElementById('stats-area');
+    const hitRate = (s.hit_rate * 100).toFixed(1);
+    const buckets = Object.entries(s.bucket_sizes || {});
+
+    let bucketsHtml = '';
+    if (buckets.length > 0) {
+      const max = Math.max(...buckets.map(b => b[1]));
+      bucketsHtml = `
+        <div style="margin-top:20px">
+          <div style="font-size:12px;color:var(--ink3);margin-bottom:12px;font-family:'DM Mono',monospace;letter-spacing:0.5px;text-transform:uppercase">Cluster Bucket Distribution</div>
+          ${buckets.map(([c, cnt]) => `
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+              <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--ink3);width:60px">Cluster ${c}</div>
+              <div style="flex:1;background:var(--surface2);border-radius:999px;height:8px;overflow:hidden">
+                <div style="width:${(cnt/max*100).toFixed(1)}%;height:100%;background:linear-gradient(90deg,var(--teal),var(--green));border-radius:999px;transition:width 0.5s"></div>
+              </div>
+              <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--ink2);width:24px;text-align:right">${cnt}</div>
+            </div>`).join('')}
+        </div>`;
+    }
+
+    area.innerHTML = `
+      <div class="stats-panel">
+        <div class="stats-title">📊 Cache Performance</div>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-value">${s.total_entries}</div>
+            <div class="stat-label">Cached Entries</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" style="color:var(--green)">${s.hit_count}</div>
+            <div class="stat-label">Cache Hits</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" style="color:var(--amber)">${s.miss_count}</div>
+            <div class="stat-label">Cache Misses</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value">${hitRate}%</div>
+            <div class="stat-label">Hit Rate</div>
+          </div>
+        </div>
+
+        <div style="margin-top:16px">
+          <div class="hit-rate-bar">
+            <div class="hit-rate-fill" style="width:${hitRate}%"></div>
+          </div>
+          <div class="hit-rate-label">
+            <span>0% (all misses)</span>
+            <span>${hitRate}% hit rate</span>
+            <span>100% (all hits)</span>
+          </div>
+        </div>
+
+        ${bucketsHtml}
+
+        <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+          <div style="font-size:12px;color:var(--ink3);font-family:'DM Mono',monospace">
+            Threshold: <strong style="color:var(--ink)">${s.threshold}</strong>
+          </div>
+          <button class="flush-btn" onclick="flushCache()">🗑️ Flush Cache</button>
+        </div>
+      </div>
+
+      <div style="text-align:center;margin-top:12px">
+        <button class="flush-btn" onclick="loadStats()" style="margin:0 auto">↻ Refresh</button>
+      </div>`;
+  }
+
+  async function flushCache() {
+    if (!confirm('Flush the entire cache and reset all statistics?')) return;
+    try {
+      const res = await fetch(`${API}/cache`, { method: 'DELETE' });
+      if (!res.ok) throw new Error();
+      loadStats();
+    } catch {
+      alert('Failed to flush cache. Is the server running?');
+    }
+  }
+
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;');
+  }
+</script>
+</body>
+</html>
